@@ -16,12 +16,13 @@ jobs:
           ref: feature/android-tv
       - uses: actions/download-artifact@v4
         with:
-          artifact-ids: '15184007088'
-          run-id: '45968094385'
+          artifact-ids: '15185316381'
+          run-id: '45970834069'
           github-token: ${{ github.token }}
           path: ${{ runner.temp }}/tv-apk
       - name: Commit the verified APK
         run: |
+          test "$(git rev-parse HEAD)" = "7647e93e64cfa8a9bdbc6cb51538bf547d3f71f5"
           apk="$(find "$RUNNER_TEMP/tv-apk" -type f -name Limusic-TV-debug.apk -print -quit)"
           test -f "$apk"
           test "$(stat -c %s "$apk")" -le 104857600
@@ -34,5 +35,5 @@ jobs:
           if git diff --cached --quiet; then
             exit 0
           fi
-          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Add combined Limusic TV test APK'
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Update TV APK with Now Playing and queue'
           git push origin HEAD:refs/heads/feature/android-tv
