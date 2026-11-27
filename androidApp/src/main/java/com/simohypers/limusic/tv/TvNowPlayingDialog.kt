@@ -51,7 +51,7 @@ internal class TvNowPlayingDialog(
         heading.addView(close)
         screen.addView(heading)
 
-        val panels = LinearLayout(activity).apply { baselineAligned = false }
+        val panels = LinearLayout(activity).apply { setBaselineAligned(false) }
         screen.addView(panels, LinearLayout.LayoutParams(-1, 0, 1f))
         val details = column().apply { setPadding(0, 0, dp(24), 0) }
         panels.addView(details, LinearLayout.LayoutParams(0, -1, 1f))
