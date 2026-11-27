@@ -112,6 +112,12 @@ class TvActivity : Activity(), KoinComponent {
             }
         val playbackControls = LinearLayout(this)
         playbackControls.addView(transport)
+        playbackControls.addView(
+            Button(this).apply {
+                setText(R.string.tv_now_playing)
+                setOnClickListener { TvNowPlayingDialog(this@TvActivity, playerHandler, deviceLink, scope).show() }
+            },
+        )
         val linkDevices =
             Button(this).apply {
                 setText(R.string.tv_link_devices)

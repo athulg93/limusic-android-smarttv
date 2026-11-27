@@ -26,4 +26,14 @@
     <string name="tv_unlink_this_tv">Unlink this TV</string>
     <string name="tv_unlink_this_tv_confirm">Remove this TV from your linked devices?</string>
     <string name="tv_continue_here">Continue on this TV</string>
+    <string name="tv_now_playing">Now Playing</string>
+    <string name="tv_queue">Queue</string>
+    <string name="tv_queue_empty">The queue is empty.</string>
+    <string name="tv_current_track">Playing • %1$s</string>
+    <string name="tv_playing_on">Playing on %1$s</string>
+    <string name="tv_playback_time">%1$s / %2$s</string>
+    <string name="tv_seek">Playback position</string>
+    <string name="tv_previous">Previous</string>
+    <string name="tv_next">Next</string>
+    <string name="tv_back">Back</string>
 </resources>
