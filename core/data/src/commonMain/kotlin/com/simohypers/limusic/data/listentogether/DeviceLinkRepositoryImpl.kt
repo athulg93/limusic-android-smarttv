@@ -7,6 +7,7 @@ import com.simohypers.limusic.domain.data.model.listentogether.LinkQueueItem
 import com.simohypers.limusic.domain.data.model.listentogether.LinkRemote
 import com.simohypers.limusic.domain.data.model.listentogether.LinkedDevice
 import com.simohypers.limusic.domain.data.model.listentogether.PairResult
+import com.simohypers.limusic.domain.data.model.listentogether.PairingInvite
 import com.simohypers.limusic.domain.data.model.listentogether.RoomTrack
 import com.simohypers.limusic.domain.manager.DataStoreManager
 import com.simohypers.limusic.domain.mediaservice.handler.MediaPlayerHandler
@@ -40,6 +41,8 @@ import kotlin.random.Random
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 /** What the computer played when this phone last controlled it, for a cold start (`DeviceLinkSession.restore`). */
 @Serializable
@@ -180,6 +183,19 @@ class DeviceLinkRepositoryImpl(
             ClaimResult.Unsupported -> PairResult.Unsupported
             ClaimResult.Unreachable -> PairResult.Unreachable
         }
+
+    @OptIn(ExperimentalUuidApi::class)
+    override suspend fun createPairingInvite(): PairingInvite? {
+        val existing = dataStore.getString(KEY_LINK).first()?.takeIf { it.isNotBlank() }
+        val config =
+            existing?.let { runCatching { Json.decodeFromString<StoredLink>(it) }.getOrNull() }
+                ?: StoredLink(Uuid.random().toHexString() + Uuid.random().toHexString(), "").also {
+                    dataStore.putString(KEY_LINK, Json.encodeToString(StoredLink.serializer(), it))
+                }
+        session.open(config.server, config.secret, deviceId(), selfName)
+        val reply = session.requestPairingCode() ?: return null
+        return PairingInvite(reply.code, config.server, reply.expiresInS)
+    }
 
     override fun unlink(deviceId: String) = session.unlink(deviceId)
 
