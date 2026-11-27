@@ -1,0 +1,40 @@
+name: Build Android TV test APK
+on:
+  push:
+    branches: [build/android-tv-apk]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: microsoft
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Build debug APK
+        run: >
+          ./gradlew --no-daemon --max-workers=3
+          -Dorg.gradle.jvmargs=-Xmx4g
+          -Pkotlin.daemon.jvmargs=-Xmx2g
+          :androidApp:assembleDebug
+      - name: Verify Android version, TV entry and ARM support
+        run: |
+          apk=androidApp/build/outputs/apk/debug/androidApp-debug.apk
+          aapt="$(find "$ANDROID_HOME/build-tools" -name aapt -type f | sort -V | tail -1)"
+          "$aapt" dump badging "$apk" > badging.txt
+          cat badging.txt
+          grep -F "sdkVersion:'26'" badging.txt
+          grep -F "com.simohypers.limusic.tv.TvActivity" badging.txt
+          grep -F "'armeabi-v7a'" badging.txt
+          mkdir -p apk-out
+          cp "$apk" apk-out/Limusic-TV-debug.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Limusic-TV-debug
+          path: apk-out/Limusic-TV-debug.apk
+          if-no-files-found: error
