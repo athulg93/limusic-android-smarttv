@@ -12,4 +12,18 @@
     <string name="tv_nothing_playing">Nothing playing</string>
     <string name="tv_play">Play</string>
     <string name="tv_pause">Pause</string>
+    <string name="tv_link_devices">Link devices</string>
+    <string name="tv_linked_devices">Linked devices · %1$s</string>
+    <string name="tv_show_pairing_code">Show pairing code</string>
+    <string name="tv_enter_pairing_code">Enter a pairing code</string>
+    <string name="tv_requesting_code">Getting a pairing code…</string>
+    <string name="tv_pairing_code_message">Enter %1$s in Settings → Devices on your phone. The code can be used once and expires after %2$d seconds.</string>
+    <string name="tv_pairing_code_expired">Code expired. Open Link devices to get a new one.</string>
+    <string name="tv_pairing_code_hint">Six-character code</string>
+    <string name="tv_invalid_pairing_code">Enter a valid, unused pairing code.</string>
+    <string name="tv_link_unreachable">Could not reach device linking. Check your connection and try again.</string>
+    <string name="tv_link_unsupported">This server does not support device linking.</string>
+    <string name="tv_unlink_this_tv">Unlink this TV</string>
+    <string name="tv_unlink_this_tv_confirm">Remove this TV from your linked devices?</string>
+    <string name="tv_continue_here">Continue on this TV</string>
 </resources>

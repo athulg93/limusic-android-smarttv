@@ -3,6 +3,7 @@ package com.simohypers.limusic.domain.repository
 import com.simohypers.limusic.domain.data.model.listentogether.DeviceLink
 import com.simohypers.limusic.domain.data.model.listentogether.LinkRemote
 import com.simohypers.limusic.domain.data.model.listentogether.PairResult
+import com.simohypers.limusic.domain.data.model.listentogether.PairingInvite
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -20,6 +21,9 @@ interface DeviceLinkRepository {
         server: String,
         code: String,
     ): PairResult
+
+    /** Open a link if needed and return a single-use invite for another device. */
+    suspend fun createPairingInvite(): PairingInvite?
 
     fun unlink(deviceId: String)
 

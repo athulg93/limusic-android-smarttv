@@ -12,7 +12,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.time.Duration.Companion.seconds
 
@@ -122,6 +125,8 @@ class DeviceLinkSession(
     /** The last queue sent as the player; an unchanged one isn't sent again. */
     private var sentStatus: LinkStatus? = null
     private var claim: Pair<String, CompletableDeferred<ClaimResult>>? = null
+    private var pairCodeReply: CompletableDeferred<PairCodePayload?>? = null
+    private val pairCodeLock = Mutex()
     private var joinDeadline: Job? = null
     private var retry: Job? = null
     private var grace: Job? = null
@@ -149,6 +154,7 @@ class DeviceLinkSession(
     /** Close the socket. The room keeps us listed as offline. */
     fun close() {
         join = null
+        pairCodeReply?.complete(null)
         grace?.cancel()
         retry?.cancel()
         joinDeadline?.cancel()
@@ -192,15 +198,38 @@ class DeviceLinkSession(
         val result = CompletableDeferred<ClaimResult>()
         claim = code to result
         client.connect()
-        val answer =
-            withTimeoutOrNull(CLAIM_TIMEOUT) { result.await() }
-                ?: if (client.isConnected) ClaimResult.Unsupported else ClaimResult.Unreachable
-        claim = null
-        // A failed claim leaves the socket for the next attempt to replace: the server allows three
-        // claims per connection, and each attempt here gets a fresh one.
-        if (answer !is ClaimResult.Paired) client.disconnect()
-        return answer
+        var paired = false
+        try {
+            val answer =
+                withTimeoutOrNull(CLAIM_TIMEOUT) { result.await() }
+                    ?: if (client.isConnected) ClaimResult.Unsupported else ClaimResult.Unreachable
+            paired = answer is ClaimResult.Paired
+            return answer
+        } finally {
+            claim = null
+            // A failed or cancelled attempt leaves the next claim a fresh socket.
+            if (!paired) client.disconnect()
+        }
     }
+
+    /** Request a single-use code after the server confirms that we joined the room. */
+    suspend fun requestPairingCode(): PairCodePayload? =
+        pairCodeLock.withLock {
+            val state =
+                withTimeoutOrNull(CLAIM_TIMEOUT) {
+                    _state.first { it.connection != LinkConnection.CONNECTING }
+                }
+            if (state?.connection != LinkConnection.CONNECTED) return@withLock null
+
+            val reply = CompletableDeferred<PairCodePayload?>()
+            pairCodeReply = reply
+            try {
+                if (!client.send(MessageTypes.PAIR_START)) return@withLock null
+                withTimeoutOrNull(REPLY_TIMEOUT) { reply.await() }
+            } finally {
+                pairCodeReply = null
+            }
+        }
 
     /**
      * Sends a playback change through [linkSendRule]. A [LinkSend.TAKEOVER] is not sent; the caller
@@ -278,6 +307,7 @@ class DeviceLinkSession(
                 }
             }
             is ListenTogetherEvent.Disconnected -> {
+                pairCodeReply?.complete(null)
                 if (join == null) return
                 _state.update { it.copy(connection = LinkConnection.CONNECTING, reconnecting = it.connection == LinkConnection.CONNECTED || it.reconnecting) }
                 if (grace?.isActive != true) {
@@ -331,6 +361,7 @@ class DeviceLinkSession(
                 grace?.cancel()
                 _events.emit(LinkEvent.Joined)
             }
+            MessageTypes.PAIR_CODE -> (payload as? PairCodePayload)?.let { pairCodeReply?.complete(it) }
             MessageTypes.PAIRED -> (payload as? PairedPayload)?.let { claim?.second?.complete(ClaimResult.Paired(it.secret)) }
             MessageTypes.USER_JOINED -> {
                 val p = payload as? UserJoinedPayload ?: return

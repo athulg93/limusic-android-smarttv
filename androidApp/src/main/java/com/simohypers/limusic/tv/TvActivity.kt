@@ -22,6 +22,8 @@ import com.simohypers.limusic.R
 import com.simohypers.limusic.common.Config
 import com.simohypers.limusic.domain.data.model.browse.album.Track
 import com.simohypers.limusic.domain.mediaservice.handler.MediaPlayerHandler
+import com.simohypers.limusic.domain.data.model.listentogether.LinkConnection
+import com.simohypers.limusic.domain.repository.DeviceLinkRepository
 import com.simohypers.limusic.domain.repository.SearchRepository
 import com.simohypers.limusic.domain.utils.Resource
 import com.simohypers.limusic.domain.utils.toListTrack
@@ -41,6 +43,7 @@ import kotlin.math.roundToInt
 class TvActivity : Activity(), KoinComponent {
     private val searchRepository: SearchRepository by inject()
     private val playerHandler: MediaPlayerHandler by inject()
+    private val deviceLink: DeviceLinkRepository by inject()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val controllerFuture by lazy {
         val service = ComponentName(packageName, PLAYBACK_SERVICE)
@@ -107,7 +110,22 @@ class TvActivity : Activity(), KoinComponent {
                     controller?.let { if (it.playWhenReady) it.pause() else it.play() }
                 }
             }
-        content.addView(transport)
+        val playbackControls = LinearLayout(this)
+        playbackControls.addView(transport)
+        val linkDevices =
+            Button(this).apply {
+                setText(R.string.tv_link_devices)
+                setOnClickListener { TvDeviceLinkDialog(this@TvActivity, deviceLink, scope).show() }
+            }
+        playbackControls.addView(linkDevices)
+        val continueHere =
+            Button(this).apply {
+                setText(R.string.tv_continue_here)
+                visibility = View.GONE
+                setOnClickListener { deviceLink.continueHere() }
+            }
+        playbackControls.addView(continueHere)
+        content.addView(playbackControls)
         status =
             TextView(this).apply {
                 setText(R.string.tv_connecting)
@@ -122,6 +140,17 @@ class TvActivity : Activity(), KoinComponent {
         )
         setContentView(content)
         query.requestFocus()
+
+        scope.launch {
+            deviceLink.link.collect { link ->
+                val canContinue =
+                    link.connection == LinkConnection.Connected &&
+                        link.player?.online == true &&
+                        !link.track?.id.isNullOrBlank()
+                if (!canContinue && continueHere.hasFocus()) linkDevices.requestFocus()
+                continueHere.visibility = if (canContinue) View.VISIBLE else View.GONE
+            }
+        }
 
         scope.launch {
             try {
@@ -202,6 +231,16 @@ class TvActivity : Activity(), KoinComponent {
         transport.setText(if (connected.playWhenReady) R.string.tv_pause else R.string.tv_play)
         transport.isEnabled =
             connected.isCommandAvailable(Player.COMMAND_PLAY_PAUSE) && connected.currentMediaItem != null
+    }
+
+    override fun onStart() {
+        super.onStart()
+        deviceLink.setForeground(true)
+    }
+
+    override fun onStop() {
+        deviceLink.setForeground(false)
+        super.onStop()
     }
 
     override fun onDestroy() {

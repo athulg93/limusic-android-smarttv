@@ -158,3 +158,9 @@ sealed interface LinkRemote {
 }
 
 enum class PairResult { Linked, InvalidCode, Unsupported, Unreachable }
+
+data class PairingInvite(
+    val code: String,
+    val server: String,
+    val expiresInSeconds: Int,
+)
