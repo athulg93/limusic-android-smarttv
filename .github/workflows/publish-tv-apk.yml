@@ -1,0 +1,38 @@
+name: Copy combined TV APK to feature branch
+on:
+  push:
+    branches: [build/android-tv-apk]
+    paths: [.github/workflows/publish-tv-apk.yml]
+permissions:
+  actions: read
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/android-tv
+      - uses: actions/download-artifact@v4
+        with:
+          artifact-ids: '15184007088'
+          run-id: '45968094385'
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/tv-apk
+      - name: Commit the verified APK
+        run: |
+          apk="$(find "$RUNNER_TEMP/tv-apk" -type f -name Limusic-TV-debug.apk -print -quit)"
+          test -f "$apk"
+          test "$(stat -c %s "$apk")" -le 104857600
+          aapt="$(find "$ANDROID_HOME/build-tools" -name aapt -type f | sort -V | tail -1)"
+          "$(dirname "$aapt")/apksigner" verify "$apk"
+          mkdir -p releases
+          cp "$apk" releases/Limusic-TV-debug.apk
+          sha256sum releases/Limusic-TV-debug.apk
+          git add -- releases/Limusic-TV-debug.apk
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Add combined Limusic TV test APK'
+          git push origin HEAD:refs/heads/feature/android-tv
