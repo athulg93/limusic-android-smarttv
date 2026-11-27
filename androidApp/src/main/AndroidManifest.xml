@@ -36,6 +36,9 @@
         android:name="android.software.car.templates_host.media"
         android:required="false" />
 
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+    <uses-feature android:name="android.software.leanback" android:required="false" />
+
     <queries>
         <intent>
             <action android:name="android.media.action.DISPLAY_AUDIO_EFFECT_CONTROL_PANEL" />
@@ -65,6 +68,18 @@
         android:requestLegacyExternalStorage="true"
         tools:replace="android:name"
         tools:targetApi="tiramisu">
+
+        <activity
+            android:name=".tv.TvActivity"
+            android:banner="@drawable/tv_banner"
+            android:exported="true"
+            android:screenOrientation="landscape"
+            android:theme="@android:style/Theme.Material.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity>
 
         <activity
             android:name=".MainActivity"

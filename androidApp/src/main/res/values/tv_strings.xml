@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tv_search_hint">Search songs</string>
+    <string name="tv_search">Search</string>
+    <string name="tv_searching">Searching…</string>
+    <string name="tv_search_results">Search results</string>
+    <string name="tv_no_results">No songs found</string>
+    <string name="tv_search_failed">Search is unavailable. Try again.</string>
+    <string name="tv_connecting">Connecting to the player…</string>
+    <string name="tv_connection_failed">Could not connect to the player. Reopen Limusic to try again.</string>
+    <string name="tv_playback_failed">Could not start playback. Try another song.</string>
+    <string name="tv_nothing_playing">Nothing playing</string>
+    <string name="tv_play">Play</string>
+    <string name="tv_pause">Pause</string>
+</resources>
