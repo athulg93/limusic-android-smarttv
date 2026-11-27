@@ -16,6 +16,8 @@ jobs:
           distribution: microsoft
           java-version: '21'
       - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
       - name: Build debug APK
         run: >
           ./gradlew --no-daemon --max-workers=3
@@ -24,12 +26,17 @@ jobs:
           :androidApp:assembleDebug
       - name: Verify Android version, TV entry and ARM support
         run: |
-          apk=androidApp/build/outputs/apk/debug/androidApp-debug.apk
+          mapfile -t apks < <(find androidApp/build/outputs -type f -name '*.apk')
+          printf '%s\n' "${apks[@]}"
+          test "${#apks[@]}" -eq 1
+          apk="${apks[0]}"
           aapt="$(find "$ANDROID_HOME/build-tools" -name aapt -type f | sort -V | tail -1)"
           "$aapt" dump badging "$apk" > badging.txt
           cat badging.txt
           grep -F "sdkVersion:'26'" badging.txt
-          grep -F "com.simohypers.limusic.tv.TvActivity" badging.txt
+          "$aapt" dump xmltree "$apk" AndroidManifest.xml > manifest.txt
+          grep -F "com.simohypers.limusic.tv.TvActivity" manifest.txt
+          grep -F "android.intent.category.LEANBACK_LAUNCHER" manifest.txt
           grep -F "'armeabi-v7a'" badging.txt
           mkdir -p apk-out
           cp "$apk" apk-out/Limusic-TV-debug.apk
